@@ -32,25 +32,48 @@
   <!-- Firebase SDK init & helpers (module) -->
  <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, doc, setDoc, updateDoc, deleteDoc, getDoc } 
-    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+  import {
+    getFirestore, collection, getDocs, addDoc, doc,
+    setDoc, updateDoc, deleteDoc, getDoc, query, where, orderBy
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-  const firebaseConfig = { ... };
+  // Konfigurasi Firebase (perbaikan storageBucket)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCYQkttPDo9o-UIJ3yuxvVcbT2xAccOL0U",
+    authDomain: "sapawarga-a2191.firebaseapp.com",
+    projectId: "sapawarga-a2191",
+    storageBucket: "sapawarga-a2191.appspot.com",  // ✅ perbaikan
+    messagingSenderId: "36344794419",
+    appId: "1:36344794419:web:0a6629488022a47aad8246",
+    measurementId: "G-TWZQ0GY1SQ"
+  };
 
+  // Inisialisasi Firebase
   const app = initializeApp(firebaseConfig);
+  try { getAnalytics(app); } catch(e){ console.warn('analytics init skipped',e); }
+
+  // Firestore
   const db = getFirestore(app);
 
-  async function loadCollection(col) {
-    const snap = await getDocs(collection(db, col));
+  // --- Firestore helpers ---
+  async function loadCollection(col, opts = {}) {
+    let q = collection(db, col);
+    if(opts.where) q = query(q, where(opts.where.field, opts.where.op, opts.where.value));
+    if(opts.orderBy) q = query(q, orderBy(opts.orderBy.field, opts.orderBy.dir || 'asc'));
+    const snap = await getDocs(q);
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
   async function addData(col, data) { return await addDoc(collection(db, col), data); }
   async function updateData(col, id, data) { return await updateDoc(doc(db, col, id), data); }
   async function deleteData(col, id) { return await deleteDoc(doc(db, col, id)); }
   async function setData(col, id, data) { return await setDoc(doc(db, col, id), data); }
-  async function getData(col, id) { const d = await getDoc(doc(db, col, id)); return d.exists() ? { id: d.id, ...d.data() } : null; }
+  async function getData(col, id) {
+    const d = await getDoc(doc(db, col, id));
+    return d.exists() ? { id: d.id, ...d.data() } : null;
+  }
 
-  // simpan global
+  window.db = db;
   window.fs = { loadCollection, addData, updateData, deleteData, setData, getData };
 </script>
 </head>
