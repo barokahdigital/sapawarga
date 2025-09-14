@@ -1,0 +1,24 @@
+:root { --radius:14px; --card-bg:#fff; --bg:#f7f8fc; }
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: var(--bg); }
+    header { background: linear-gradient(90deg,#2563eb,#1e40af); color:#fff; padding:.9rem 1rem; display:flex; align-items:center; justify-content:space-between; box-shadow:0 6px 20px rgba(0,0,0,0.08); border-bottom: 4px solid rgba(0,0,0,0.03); }
+    header .brand { display:flex; gap:.6rem; align-items:center; }
+    header img { width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #fff; }
+    header .datetime { font-size:16px; font-weight:600; margin-right:12px; }
+    .ticker { background:#f59e0b; color:#fff; padding:.5rem .8rem; font-weight:700; overflow:hidden; }
+    .ticker p { white-space:nowrap; padding-left:100%; display:inline-block; animation: tick 18s linear infinite; margin:0; }
+    @keyframes tick { 0%{transform:translateX(0)} 100%{transform:translateX(-100%)} }
+    .card-rounded{border-radius:var(--radius); background:#fff; box-shadow:0 8px 24px rgba(12,35,63,0.06);}
+    .hidden{display:none!important;}
+    .stat-card{border-radius:10px; padding:.6rem; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.04);}
+    table thead th{background:#f3f4f6}
+    .demografi { --accent1:#3b82f6; --accent2:#8b5cf6; --accent3:#f59e0b; --accent4:#10b981; }
+    .keuangan { --k1:#16a34a; --k2:#ef4444; --k3:#0ea5e9; --k4:#f97316; }
+    @media(max-width:900px){ .desktop-split{flex-direction:column} }
+#loginPage { min-height:100vh; display:flex; align-items:center; justify-content:center; background: linear-gradient(120deg,#2563eb,#1e40af); padding:1rem; }
+    .login-card { background:#fff; width:100%; max-width:520px; padding:1.5rem; border-radius:16px; box-shadow:0 12px 36px rgba(0,0,0,0.18); text-align:center; }
+
+    table thead th { background:#f3f4f6; font-size:.82rem; text-transform:uppercase; }
+    .hidden { display:none !important; }
+
+    /* Responsive tweaks */
+    @media(max-width:768px){ .header-right { display:none } .datetime{ font-size:14px } }
