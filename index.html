@@ -31,62 +31,51 @@
 
   <!-- Firebase SDK init & helpers (module) -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
-    import {
-      getFirestore, collection, getDocs, addDoc, doc,
-      setDoc, updateDoc, deleteDoc, getDoc, query, where, orderBy
-    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+  import {
+    getFirestore, collection, getDocs, addDoc, doc,
+    setDoc, updateDoc, deleteDoc, getDoc, query, where, orderBy
+  } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 
-    // --- firebase config (dari kamu) ---
-    // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+  // Konfigurasi Firebase (perbaikan storageBucket)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCYQkttPDo9o-UIJ3yuxvVcbT2xAccOL0U",
+    authDomain: "sapawarga-a2191.firebaseapp.com",
+    projectId: "sapawarga-a2191",
+    storageBucket: "sapawarga-a2191.appspot.com",  // ✅ perbaikan
+    messagingSenderId: "36344794419",
+    appId: "1:36344794419:web:0a6629488022a47aad8246",
+    measurementId: "G-TWZQ0GY1SQ"
+  };
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCYQkttPDo9o-UIJ3yuxvVcbT2xAccOL0U",
-  authDomain: "sapawarga-a2191.firebaseapp.com",
-  projectId: "sapawarga-a2191",
-  storageBucket: "sapawarga-a2191.firebasestorage.app",
-  messagingSenderId: "36344794419",
-  appId: "1:36344794419:web:0a6629488022a47aad8246",
-  measurementId: "G-TWZQ0GY1SQ"
-};
+  // Inisialisasi Firebase
+  const app = initializeApp(firebaseConfig);
+  try { getAnalytics(app); } catch(e){ console.warn('analytics init skipped',e); }
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+  // Firestore
+  const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    try { getAnalytics(app); } catch(e){ console.warn('analytics init skipped',e); }
-    const db = getFirestore(app);
+  // --- Firestore helpers ---
+  async function loadCollection(col, opts = {}) {
+    let q = collection(db, col);
+    if(opts.where) q = query(q, where(opts.where.field, opts.where.op, opts.where.value));
+    if(opts.orderBy) q = query(q, orderBy(opts.orderBy.field, opts.orderBy.dir || 'asc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+  async function addData(col, data) { return await addDoc(collection(db, col), data); }
+  async function updateData(col, id, data) { return await updateDoc(doc(db, col, id), data); }
+  async function deleteData(col, id) { return await deleteDoc(doc(db, col, id)); }
+  async function setData(col, id, data) { return await setDoc(doc(db, col, id), data); }
+  async function getData(col, id) {
+    const d = await getDoc(doc(db, col, id));
+    return d.exists() ? { id: d.id, ...d.data() } : null;
+  }
 
-    // --- Firestore helpers ---
-    async function loadCollection(col, opts = {}) {
-      // opts: { orderBy: { field, dir } }
-      let q = collection(db, col);
-      if(opts.where) q = query(q, where(opts.where.field, opts.where.op, opts.where.value));
-      if(opts.orderBy) q = query(q, orderBy(opts.orderBy.field, opts.orderBy.dir || 'asc'));
-      const snap = await getDocs(q);
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
-    async function addData(col, data) { return await addDoc(collection(db, col), data); }
-    async function updateData(col, id, data) { return await updateDoc(doc(db, col, id), data); }
-    async function deleteData(col, id) { return await deleteDoc(doc(db, col, id)); }
-    async function setData(col, id, data) { return await setDoc(doc(db, col, id), data); }
-    async function getData(col, id) {
-      const d = await getDoc(doc(db, col, id));
-      return d.exists() ? { id: d.id, ...d.data() } : null;
-    }
-
-    // expose
-    window.db = db;
-    window.fs = { loadCollection, addData, updateData, deleteData, setData, getData };
-  </script>
+  window.db = db;
+  window.fs = { loadCollection, addData, updateData, deleteData, setData, getData };
+</script>
 </head>
 <body>
 
