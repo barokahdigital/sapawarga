@@ -35,33 +35,29 @@
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
   import {
     getFirestore, collection, getDocs, addDoc, doc,
-    setDoc, updateDoc, deleteDoc, getDoc, query, where, orderBy
+    setDoc, updateDoc, deleteDoc, getDoc
   } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL }
+    from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
 
-  // Konfigurasi Firebase (perbaikan storageBucket)
   const firebaseConfig = {
     apiKey: "AIzaSyCYQkttPDo9o-UIJ3yuxvVcbT2xAccOL0U",
     authDomain: "sapawarga-a2191.firebaseapp.com",
     projectId: "sapawarga-a2191",
-    storageBucket: "sapawarga-a2191.appspot.com",  // ✅ perbaikan
+    storageBucket: "sapawarga-a2191.appspot.com",
     messagingSenderId: "36344794419",
     appId: "1:36344794419:web:0a6629488022a47aad8246",
     measurementId: "G-TWZQ0GY1SQ"
   };
 
-  // Inisialisasi Firebase
   const app = initializeApp(firebaseConfig);
-  try { getAnalytics(app); } catch(e){ console.warn('analytics init skipped',e); }
+  try { getAnalytics(app); } catch(e){ console.warn('Analytics disabled:', e.message); }
 
-  // Firestore
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
-  // --- Firestore helpers ---
-  async function loadCollection(col, opts = {}) {
-    let q = collection(db, col);
-    if(opts.where) q = query(q, where(opts.where.field, opts.where.op, opts.where.value));
-    if(opts.orderBy) q = query(q, orderBy(opts.orderBy.field, opts.orderBy.dir || 'asc'));
-    const snap = await getDocs(q);
+  async function loadCollection(col) {
+    const snap = await getDocs(collection(db, col));
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
   async function addData(col, data) { return await addDoc(collection(db, col), data); }
@@ -73,8 +69,14 @@
     return d.exists() ? { id: d.id, ...d.data() } : null;
   }
 
-  window.db = db;
+  async function uploadLogo(file) {
+    const storageRef = ref(storage, "logo/rt04.png");
+    await uploadBytes(storageRef, file);
+    return await getDownloadURL(storageRef);
+  }
+
   window.fs = { loadCollection, addData, updateData, deleteData, setData, getData };
+  window.fsUpload = { uploadLogo };
 </script>
 </head>
 <body>
