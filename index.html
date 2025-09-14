@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sapa Warga RT04</title>
+  <title>Sapa Warga RT04 (Firestore)</title>
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -14,43 +14,75 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
-    :root { --radius:14px; --card-bg:#fff; --bg:#f7f8fc; }
+    :root { --radius:14px; --bg:#f7f8fc; }
     body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: var(--bg); }
     header { background: linear-gradient(90deg,#2563eb,#1e40af); color:#fff; padding:.9rem 1rem; display:flex; align-items:center; justify-content:space-between; box-shadow:0 6px 20px rgba(0,0,0,0.08); border-bottom: 4px solid rgba(0,0,0,0.03); }
     header .brand { display:flex; gap:.6rem; align-items:center; }
     header img { width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #fff; }
-    header .datetime { font-size:16px; font-weight:600; margin-right:12px; }
     .ticker { background:#f59e0b; color:#fff; padding:.5rem .8rem; font-weight:700; overflow:hidden; }
-    .ticker p { white-space:nowrap; padding-left:100%; display:inline-block; animation: tick 18s linear infinite; margin:0; }
-    @keyframes tick { 0%{transform:translateX(0)} 100%{transform:translateX(-100%)} }
     .card-rounded{border-radius:var(--radius); background:#fff; box-shadow:0 8px 24px rgba(12,35,63,0.06);}
     .hidden{display:none!important;}
     .stat-card{border-radius:10px; padding:.6rem; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.04);}
     table thead th{background:#f3f4f6}
-    .demografi { --accent1:#3b82f6; --accent2:#8b5cf6; --accent3:#f59e0b; --accent4:#10b981; }
-    .keuangan { --k1:#16a34a; --k2:#ef4444; --k3:#0ea5e9; --k4:#f97316; }
     @media(max-width:900px){ .desktop-split{flex-direction:column} }
-#loginPage { min-height:100vh; display:flex; align-items:center; justify-content:center; background: linear-gradient(120deg,#2563eb,#1e40af); padding:1rem; }
+    #loginPage { min-height:100vh; display:flex; align-items:center; justify-content:center; background: linear-gradient(120deg,#2563eb,#1e40af); padding:1rem; }
     .login-card { background:#fff; width:100%; max-width:520px; padding:1.5rem; border-radius:16px; box-shadow:0 12px 36px rgba(0,0,0,0.18); text-align:center; }
-
-    table thead th { background:#f3f4f6; font-size:.82rem; text-transform:uppercase; }
-    .hidden { display:none !important; }
-
-    /* Responsive tweaks */
-    @media(max-width:768px){ .header-right { display:none } .datetime{ font-size:14px } }
   </style>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <!-- Firebase SDK init & helpers (module) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+    import {
+      getFirestore, collection, getDocs, addDoc, doc,
+      setDoc, updateDoc, deleteDoc, getDoc, query, where, orderBy
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    // --- firebase config (dari kamu) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCYQkttPDo9o-UIJ3yuxvVcbT2xAccOL0U",
+      authDomain: "sapawarga-a2191.firebaseapp.com",
+      projectId: "sapawarga-a2191",
+      storageBucket: "sapawarga-a2191.firebasestorage.app",
+      messagingSenderId: "36344794419",
+      appId: "1:36344794419:web:0a6629488022a47aad8246",
+      measurementId: "G-TWZQ0GY1SQ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    try { getAnalytics(app); } catch(e){ console.warn('analytics init skipped',e); }
+    const db = getFirestore(app);
+
+    // --- Firestore helpers ---
+    async function loadCollection(col, opts = {}) {
+      // opts: { orderBy: { field, dir } }
+      let q = collection(db, col);
+      if(opts.where) q = query(q, where(opts.where.field, opts.where.op, opts.where.value));
+      if(opts.orderBy) q = query(q, orderBy(opts.orderBy.field, opts.orderBy.dir || 'asc'));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    async function addData(col, data) { return await addDoc(collection(db, col), data); }
+    async function updateData(col, id, data) { return await updateDoc(doc(db, col, id), data); }
+    async function deleteData(col, id) { return await deleteDoc(doc(db, col, id)); }
+    async function setData(col, id, data) { return await setDoc(doc(db, col, id), data); }
+    async function getData(col, id) {
+      const d = await getDoc(doc(db, col, id));
+      return d.exists() ? { id: d.id, ...d.data() } : null;
+    }
+
+    // expose
+    window.db = db;
+    window.fs = { loadCollection, addData, updateData, deleteData, setData, getData };
+  </script>
 </head>
 <body>
 
 <!-- LOGIN -->
 <section id="loginPage" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;">
-  <div class="card p-4" style="max-width:640px;width:100%;">
+  <div class="card login-card">
     <div class="text-center mb-3">
-      <img id="logoLogin" src="Screenshot 2025-08-30 100250.png" alt="Logo" style="width:96px;height:96px;border-radius:12px;object-fit:cover">
+      <img id="logoLogin" src="" alt="Logo" style="width:96px;height:96px;border-radius:12px;object-fit:cover">
       <h4 class="mt-2">SAPA KELUARGA RT04</h4>
       <p class="text-muted mb-0">Selamat Datang di Situs Sapa Keluarga RT 04</p>
     </div>
@@ -59,7 +91,7 @@
     <div class="d-grid gap-2">
       <button class="btn btn-primary" onclick="login()">Login</button>
     </div>
-    <small class="d-block text-muted mt-3">Copyright: <b>@2025</b><b>BarokahDigitalMedia</b></small>
+    <small class="d-block text-muted mt-3">Copyright: <b>@2025</b> <b>BarokahDigitalMedia</b></small>
   </div>
 </section>
 
@@ -67,14 +99,14 @@
 <section id="app" class="hidden">
   <header>
     <div class="brand">
-      <img id="logoMain" src="Screenshot 2025-08-30 100250.png" alt="Logo" style="width:56px;height:56px;border-radius:10px;object-fit:cover">
+      <img id="logoMain" src="" alt="Logo">
       <div>
         <div style="font-weight:700">SAPA KELUARGA RT04</div>
         <div style="font-size:.85rem;opacity:.9">Dashboard Laporan Keuangan dan Data Warga</div>
       </div>
     </div>
     <div class="d-flex align-items-center gap-2">
-      <div id="dateTime" style="font-weight:600;margin-right:8px"></div>
+      <div id="dateTime" style="font-weight:600;margin-right:12px"></div>
       <button class="btn btn-light btn-sm me-1" onclick="openReadme()">README</button>
       <button class="btn btn-danger btn-sm" onclick="logout()">Sign Out</button>
     </div>
@@ -89,35 +121,33 @@
       <li class="nav-item adminOnly"><a class="nav-link" data-target="admin">Admin</a></li>
     </ul>
 
-    <!-- DASHBOARD: Demografi (ATAS) & Keuangan (BAWAH) -->
+    <!-- DASHBOARD -->
     <div id="dashboard" class="mt-3">
-      <!-- Demografi: atas -->
       <div class="card-rounded p-3 mb-3 demografi">
         <h5>Demografi Warga Kita</h5>
         <div class="d-flex desktop-split gap-3" style="align-items:stretch">
-          <!-- Left: scorecards -->
           <div style="flex:1">
             <div class="row g-3">
               <div class="col-md-3">
-                <div class="stat-card" style="background:linear-gradient(180deg,var(--accent1),#60a5fa);color:#fff;">
+                <div class="stat-card" style="background:linear-gradient(180deg,#3b82f6,#60a5fa);color:#fff;">
                   <div class="small">Total Warga</div>
                   <div id="s_total" class="h4">0</div>
                 </div>
               </div>
               <div class="col-md-3">
-                <div class="stat-card" style="background:linear-gradient(180deg,var(--accent2),#a78bfa);color:#fff;">
+                <div class="stat-card" style="background:linear-gradient(180deg,#8b5cf6,#a78bfa);color:#fff;">
                   <div class="small">Laki-laki</div>
                   <div id="s_laki" class="h4">0</div>
                 </div>
               </div>
               <div class="col-md-3">
-                <div class="stat-card" style="background:linear-gradient(180deg,var(--accent3),#fbbf24);color:#000;">
+                <div class="stat-card" style="background:linear-gradient(180deg,#f59e0b,#fbbf24);color:#000;">
                   <div class="small">Perempuan</div>
                   <div id="s_perempuan" class="h4">0</div>
                 </div>
               </div>
               <div class="col-md-3">
-                <div class="stat-card" style="background:linear-gradient(180deg,var(--accent4),#34d399);color:#fff;">
+                <div class="stat-card" style="background:linear-gradient(180deg,#10b981,#34d399);color:#fff;">
                   <div class="small">Jenis Pekerjaan</div>
                   <div id="s_pekerjaan" class="h5">0</div>
                 </div>
@@ -137,7 +167,6 @@
             </div>
           </div>
 
-          <!-- Right: chart demografi -->
           <div style="flex:1">
             <div class="card-rounded p-3 h-100">
               <h6>Grafik Demografi</h6>
@@ -148,11 +177,9 @@
         </div>
       </div>
 
-      <!-- Keuangan: bawah -->
       <div class="card-rounded p-3 keuangan">
         <h5>Laporan Keuangan Kita</h5>
         <div class="d-flex desktop-split gap-3" style="align-items:stretch">
-          <!-- Left: chart keuangan -->
           <div style="flex:1">
             <div class="card-rounded p-3 h-100">
               <h6>Grafik Kas per Kategori</h6>
@@ -161,23 +188,21 @@
             </div>
           </div>
 
-          <!-- Right: scorecards keuangan -->
           <div style="flex:1">
             <div class="row g-3">
               <div class="col-md-6">
-                <div class="stat-card" style="background:linear-gradient(180deg,var(--k1),#34d399);color:#fff;">
+                <div class="stat-card" style="background:linear-gradient(180deg,#16a34a,#34d399);color:#fff;">
                   <div class="small">Total Pemasukan</div>
                   <div id="k_total_in" class="h5">Rp0</div>
                 </div>
               </div>
               <div class="col-md-6">
-                <div class="stat-card" style="background:linear-gradient(180deg,var(--k2),#fb7185);color:#fff;">
+                <div class="stat-card" style="background:linear-gradient(180deg,#ef4444,#fb7185);color:#fff;">
                   <div class="small">Total Pengeluaran</div>
                   <div id="k_total_out" class="h5">Rp0</div>
                 </div>
               </div>
 
-              <!-- per-kas -->
               <div class="col-md-6">
                 <div class="stat-card" style="background:linear-gradient(180deg,#155e75,#2dd4bf);color:#fff;">
                   <div class="small">Kas Insiba</div>
@@ -213,7 +238,7 @@
       </div>
     </div>
 
-    <!-- TAB: DATA WARGA -->
+    <!-- DATA WARGA -->
     <div id="data" class="mt-3 hidden">
       <div class="card-rounded p-3">
         <div class="d-flex justify-content-between align-items-center">
@@ -236,7 +261,7 @@
       </div>
     </div>
 
-    <!-- TAB: KEUANGAN -->
+    <!-- KEUANGAN -->
     <div id="keuangan" class="mt-3 hidden">
       <div class="card-rounded p-3">
         <div class="d-flex justify-content-between align-items-center">
@@ -257,14 +282,14 @@
       </div>
     </div>
 
-    <!-- TAB: ADMIN (upload logo + forms + initial balances) -->
+    <!-- ADMIN -->
     <div id="admin" class="mt-3 hidden">
       <div class="row g-3">
         <div class="col-md-4">
           <div class="card-rounded p-3">
             <h6>Upload Logo</h6>
             <input type="file" accept="image/*" id="logoUpload" class="form-control" onchange="handleLogoUpload(event)">
-            <div class="small text-muted mt-2">Logo akan disimpan di browser dan dipakai pada header & login.</div>
+            <div class="small text-muted mt-2">Logo akan disimpan ke Firestore (settings/logo).</div>
           </div>
         </div>
 
@@ -331,8 +356,8 @@
   <div class="modal-body">
     <ul>
       <li>Login admin/admin123 untuk akses penuh, user/user123 untuk read-only.</li>
-      <li>Unggah logo di tab Admin (disimpan di localStorage).</li>
-      <li>Dashboard terbagi: Demografi (atas) & Laporan Keuangan (bawah), sekarang dengan saldo per kas (Insiba,Ronda,Donasi,Umum).</li>
+      <li>Unggah logo di tab Admin (disimpan di Firestore pada dokumen settings/logo).</li>
+      <li>Dashboard terbagi: Demografi & Laporan Keuangan.</li>
       <li>Pada tab Admin Anda dapat mengatur saldo awal per kas, lalu tambah transaksi dengan kategori.</li>
     </ul>
   </div>
@@ -345,57 +370,45 @@ document.addEventListener("DOMContentLoaded", () => {
   const els = s => Array.from(document.querySelectorAll(s));
   const IDR = n => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n||0);
 
-  /* ---------------- Storage keys & helpers ---------------- */
-  const LS = { warga:'rt_warga_v4', keu:'rt_keu_v4', logo:'rt_logo_v4', accounts:'rt_accounts_v1' };
-  function load(k, fallback){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):fallback }catch(e){ return fallback; } }
-  function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){ console.warn('save error',e); } }
-
-  /* ---------------- Initial state (demo) ---------------- */
-  let warga = load(LS.warga, [
-    { id:'w_1', nik:'3201', nama:'Budi', tgl_lahir:'1985-06-10', rt:4, rw:1, jk:'L', job:'Petani', penghasilan:1500000 },
-    { id:'w_2', nik:'3202', nama:'Siti', tgl_lahir:'1990-02-15', rt:4, rw:1, jk:'P', job:'Guru', penghasilan:2500000 },
-    { id:'w_3', nik:'w3', nama:'Andi', tgl_lahir:'2012-09-05', rt:4, rw:1, jk:'L', job:'Pelajar', penghasilan:0 }
-  ]);
-
-  let keuangan = load(LS.keu, [
-    { id:'k_1', tgl:'2025-08-01', ket:'Sumbangan RT', kategori:'Donasi', masuk:500000, keluar:0 },
-    { id:'k_2', tgl:'2025-08-05', ket:'Beli Alat', kategori:'Umum', masuk:0, keluar:150000 },
-    { id:'k_3', tgl:'2025-08-10', ket:'Iuran Ronda', kategori:'Ronda', masuk:200000, keluar:0 },
-    { id:'k_4', tgl:'2025-08-12', ket:'Pembelian Snack', kategori:'Insiba', masuk:0, keluar:50000 }
-  ]);
-
-  let accounts = load(LS.accounts, { Insiba:0, Ronda:0, Donasi:0, Umum:0 });
-
-  /* load saved logo if exist */
-  const savedLogo = load(LS.logo, null);
-  if(savedLogo){ if(el('#logoMain')) el('#logoMain').src = savedLogo; if(el('#logoLogin')) el('#logoLogin').src = savedLogo; }
-
-  /* ---------------- Auth ---------------- */
+  // State
+  let warga = [], keuangan = [], accounts = { Insiba:0, Ronda:0, Donasi:0, Umum:0 };
   let currentRole = null;
-  window.fillDemo = function(){ el('#username').value='admin'; el('#password').value='admin123'; }
-  window.login = function(){
-    const u = el('#username').value.trim(), p = el('#password').value.trim();
-    if(u==='admin' && p==='admin123') currentRole='admin';
-    else if(u==='user' && p==='user123') currentRole='user';
-    else { alert('Creds salah! (admin/admin123, user/user123)'); return; }
-    el('#loginPage').classList.add('hidden');
-    el('#app').classList.remove('hidden');
-    if(currentRole!=='admin') els('.adminOnly').forEach(x=>x.classList.add('hidden'));
-    startClock(); renderAll(); loadInitialBalancesToForm();
-  }
-  window.logout = function(){ location.reload(); }
-  window.openReadme = function(){ new bootstrap.Modal(document.getElementById('modalReadme')).show(); }
+  let chartDem = null, chartKeu = null;
 
-  /* ---------------- Clock ---------------- */
+  // --- Clock
   function startClock(){ updateClock(); if(window._clockInterval) clearInterval(window._clockInterval); window._clockInterval = setInterval(updateClock,1000); }
   function updateClock(){ const now=new Date(); const hari=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now.getDay()]; const fmt = now.toLocaleString('id-ID',{ day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'}); el('#dateTime').textContent = `${hari}, ${fmt}`; }
 
-  /* ---------------- Utilities ---------------- */
+  // --- Utility
   function uid(prefix='id'){ return prefix + '_' + Date.now().toString(36).slice(4) + Math.random().toString(36).slice(2,6); }
   function calcAge(birthStr){ if(!birthStr) return null; const b = new Date(birthStr); const now = new Date(); let age = now.getFullYear() - b.getFullYear(); const m = now.getMonth() - b.getMonth(); if(m < 0 || (m === 0 && now.getDate() < b.getDate())) age--; return age; }
   function escapeHtml(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
-  /* ---------------- Render Warga & Demografi ---------------- */
+  // --- Load initial settings (logo + accounts)
+  async function loadSettings(){
+    // logo
+    try {
+      const logoDoc = await fs.getData('settings','logo');
+      if(logoDoc && logoDoc.dataUrl){
+        el('#logoMain').src = logoDoc.dataUrl;
+        el('#logoLogin').src = logoDoc.dataUrl;
+      } else {
+        // fallback image placeholder
+        el('#logoMain').src = '';
+        el('#logoLogin').src = '';
+      }
+    } catch(e){ console.warn('logo load err',e); }
+
+    // accounts
+    try {
+      const acc = await fs.getData('settings','accounts');
+      if(acc){
+        accounts = { Insiba:+acc.Insiba||0, Ronda:+acc.Ronda||0, Donasi:+acc.Donasi||0, Umum:+acc.Umum||0 };
+      }
+    } catch(e){ console.warn('accounts load err',e); }
+  }
+
+  // --- Render Warga
   function renderWargaTable(){
     const tbody = el('#tableWarga tbody'); tbody.innerHTML='';
     warga.forEach((w) => {
@@ -427,7 +440,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return { total, laki, perempuan, pekerjaanCount, anak, dewasa, lansia };
   }
 
-  let chartDem = null;
   function updateDemografiUI(){
     const d = computeDemografi();
     el('#s_total').textContent = d.total;
@@ -449,14 +461,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /* ---------------- Render Keuangan & Aggregation ---------------- */
-  let chartKeu = null;
+  // --- Render Keuangan
   function renderKeuanganTable(){
     const tbody = el('#tableKeuangan tbody'); tbody.innerHTML='';
     const filter = (el('#filterKategori') && el('#filterKategori').value) || '';
-    // compute running starting from sum of initial balances
-    const init = load(LS.accounts, { Insiba:0, Ronda:0, Donasi:0, Umum:0 });
-    let running = Object.values(init).reduce((a,b)=>a+(+b||0),0);
+    // compute running starting from sum of initial balances (overall starting balance)
+    let running = 0;
+    // we'll compute per-row running as cumulative of sorted transactions + initial sums
+    const init = { ...accounts };
+    running = Object.values(init).reduce((a,b)=>a+(+b||0),0);
     // sort by date
     const arr = keuangan.slice().sort((a,b)=> (a.tgl||'').localeCompare(b.tgl||''));
     arr.forEach((k)=>{
@@ -471,9 +484,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function computeAccountBalances(){
-    const acc = load(LS.accounts, { Insiba:0, Ronda:0, Donasi:0, Umum:0 });
-    const totals = { Insiba:+acc.Insiba||0, Ronda:+acc.Ronda||0, Donasi:+acc.Donasi||0, Umum:+acc.Umum||0 };
-    // ensure keys exist
+    const totals = { Insiba:+accounts.Insiba||0, Ronda:+accounts.Ronda||0, Donasi:+accounts.Donasi||0, Umum:+accounts.Umum||0 };
     ['Insiba','Ronda','Donasi','Umum'].forEach(k=>{ if(!(k in totals)) totals[k]=0; });
     keuangan.forEach(k => {
       const cat = k.kategori || 'Umum';
@@ -509,12 +520,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /* ---------------- CRUD: Warga ---------------- */
-  function saveWargaFromAdmin(){
+  // --- CRUD Warga
+  async function saveWargaFromAdmin(){
     if(currentRole!=='admin') return alert('Hanya admin.');
-    const id = uid('w');
     const w = {
-      id,
       nik: el('#fNIK').value.trim(),
       nama: el('#fNama').value.trim(),
       tgl_lahir: el('#fTglLahir').value || '',
@@ -525,50 +534,73 @@ document.addEventListener("DOMContentLoaded", () => {
       penghasilan: +el('#fPenghasilan').value || 0
     };
     if(!w.nama){ return alert('Nama wajib diisi'); }
-    warga.push(w); save(LS.warga, warga); resetWargaForm(); renderAll();
+
+    try {
+      await fs.addData('warga', w);
+      await refreshWarga();
+      resetWargaForm();
+      alert('Warga disimpan.');
+    } catch(e){ console.error(e); alert('Error menyimpan warga'); }
   }
   window.saveWargaFromAdmin = saveWargaFromAdmin;
+
   function resetWargaForm(){ ['#fNIK','#fNama','#fTglLahir','#fRT','#fRW','#fJK','#fJob','#fPenghasilan'].forEach(id=>{ if(el(id)) el(id).value=''; }); }
 
-  function editWarga(id){
-    const w = warga.find(x=>x.id===id); if(!w) return alert('Tidak ditemukan');
-    el('#fNIK').value = w.nik || '';
-    el('#fNama').value = w.nama || '';
-    el('#fTglLahir').value = w.tgl_lahir || '';
-    el('#fRT').value = w.rt || '';
-    el('#fRW').value = w.rw || '';
-    el('#fJK').value = w.jk || '';
-    el('#fJob').value = w.job || '';
-    el('#fPenghasilan').value = w.penghasilan || 0;
+  async function editWarga(id){
+    const doc = warga.find(x=>x.id===id);
+    if(!doc) return alert('Tidak ditemukan');
+    el('#fNIK').value = doc.nik || '';
+    el('#fNama').value = doc.nama || '';
+    el('#fTglLahir').value = doc.tgl_lahir || '';
+    el('#fRT').value = doc.rt || '';
+    el('#fRW').value = doc.rw || '';
+    el('#fJK').value = doc.jk || '';
+    el('#fJob').value = doc.job || '';
+    el('#fPenghasilan').value = doc.penghasilan || 0;
     const btn = el('#btnSaveWarga');
     btn.textContent = 'Update Warga';
-    btn.onclick = () => {
-      w.nik = el('#fNIK').value.trim();
-      w.nama = el('#fNama').value.trim();
-      w.tgl_lahir = el('#fTglLahir').value || '';
-      w.rt = el('#fRT').value.trim();
-      w.rw = el('#fRW').value.trim();
-      w.jk = el('#fJK').value || '';
-      w.job = el('#fJob').value.trim();
-      w.penghasilan = +el('#fPenghasilan').value || 0;
-      save(LS.warga, warga); renderAll();
-      btn.textContent = 'Simpan Warga';
-      btn.onclick = saveWargaFromAdmin;
-      resetWargaForm();
-      document.querySelector('#tabs .nav-link[data-target="data"]').click();
+    btn.onclick = async () => {
+      try {
+        const updated = {
+          nik: el('#fNIK').value.trim(),
+          nama: el('#fNama').value.trim(),
+          tgl_lahir: el('#fTglLahir').value || '',
+          rt: el('#fRT').value.trim(),
+          rw: el('#fRW').value.trim(),
+          jk: el('#fJK').value || '',
+          job: el('#fJob').value.trim(),
+          penghasilan: +el('#fPenghasilan').value || 0
+        };
+        await fs.updateData('warga', id, updated);
+        await refreshWarga();
+        btn.textContent = 'Simpan Warga';
+        btn.onclick = saveWargaFromAdmin;
+        resetWargaForm();
+        // switch to data tab
+        document.querySelector('#tabs .nav-link[data-target="data"]').click();
+      } catch(e){ console.error(e); alert('Error update warga'); }
     };
     document.querySelector('#tabs .nav-link[data-target="admin"]').click();
   }
   window.editWarga = editWarga;
-  function deleteWarga(id){ if(currentRole!=='admin') return alert('Hanya admin.'); if(!confirm('Hapus data warga?')) return; warga = warga.filter(w => w.id !== id); save(LS.warga, warga); renderAll(); }
+
+  async function deleteWarga(id){
+    if(currentRole!=='admin') return alert('Hanya admin.');
+    if(!confirm('Hapus data warga?')) return;
+    try {
+      await fs.deleteData('warga', id);
+      await refreshWarga();
+      alert('Dihapus.');
+    } catch(e){ console.error(e); alert('Error hapus'); }
+  }
   window.deleteWarga = deleteWarga;
 
-  /* ---------------- CRUD: Keuangan ---------------- */
-  function saveKeuFromAdmin(){
+  async function refreshWarga(){ warga = await fs.loadCollection('warga'); renderWargaTable(); updateDemografiUI(); }
+
+  // --- CRUD Keuangan
+  async function saveKeuFromAdmin(){
     if(currentRole!=='admin') return alert('Hanya admin.');
-    const id = uid('k');
     const k = {
-      id,
       tgl: el('#fTgl').value || new Date().toISOString().slice(0,10),
       ket: el('#fKet').value.trim() || '-',
       kategori: el('#fKategori').value || 'Umum',
@@ -576,61 +608,93 @@ document.addEventListener("DOMContentLoaded", () => {
       keluar: +el('#fKeluar').value || 0
     };
     if(k.masuk===0 && k.keluar===0) return alert('Isi pemasukan atau pengeluaran.');
-    keuangan.push(k); save(LS.keu, keuangan); resetKeuForm(); renderAll();
+    try {
+      await fs.addData('keuangan', k);
+      await refreshKeuangan();
+      resetKeuForm();
+      alert('Catatan keuangan disimpan.');
+    } catch(e){ console.error(e); alert('Error menyimpan keuangan'); }
   }
   window.saveKeuFromAdmin = saveKeuFromAdmin;
   function resetKeuForm(){ ['#fTgl','#fKet','#fKategori','#fMasuk','#fKeluar'].forEach(id=>{ if(el(id)) el(id).value=''; }); }
 
-  function editKeu(id){
-    const k = keuangan.find(x=>x.id===id); if(!k) return alert('Tidak ditemukan');
-    el('#fTgl').value = k.tgl || '';
-    el('#fKet').value = k.ket || '';
-    el('#fKategori').value = k.kategori || 'Umum';
-    el('#fMasuk').value = k.masuk || 0;
-    el('#fKeluar').value = k.keluar || 0;
+  async function editKeu(id){
+    const doc = keuangan.find(x=>x.id===id); if(!doc) return alert('Tidak ditemukan');
+    el('#fTgl').value = doc.tgl || '';
+    el('#fKet').value = doc.ket || '';
+    el('#fKategori').value = doc.kategori || 'Umum';
+    el('#fMasuk').value = doc.masuk || 0;
+    el('#fKeluar').value = doc.keluar || 0;
     const btn = el('#btnSaveKeu');
     btn.textContent = 'Update Keuangan';
-    btn.onclick = () => {
-      k.tgl = el('#fTgl').value || new Date().toISOString().slice(0,10);
-      k.ket = el('#fKet').value.trim() || '-';
-      k.kategori = el('#fKategori').value || 'Umum';
-      k.masuk = +el('#fMasuk').value || 0;
-      k.keluar = +el('#fKeluar').value || 0;
-      save(LS.keu, keuangan); renderAll();
-      btn.textContent = 'Simpan Keuangan';
-      btn.onclick = saveKeuFromAdmin;
-      resetKeuForm();
-      document.querySelector('#tabs .nav-link[data-target="keuangan"]').click();
+    btn.onclick = async () => {
+      try {
+        const updated = {
+          tgl: el('#fTgl').value || new Date().toISOString().slice(0,10),
+          ket: el('#fKet').value.trim() || '-',
+          kategori: el('#fKategori').value || 'Umum',
+          masuk: +el('#fMasuk').value || 0,
+          keluar: +el('#fKeluar').value || 0
+        };
+        await fs.updateData('keuangan', id, updated);
+        await refreshKeuangan();
+        btn.textContent = 'Simpan Keuangan';
+        btn.onclick = saveKeuFromAdmin;
+        resetKeuForm();
+        document.querySelector('#tabs .nav-link[data-target="keuangan"]').click();
+      } catch(e){ console.error(e); alert('Error update keuangan'); }
     };
     document.querySelector('#tabs .nav-link[data-target="admin"]').click();
   }
   window.editKeu = editKeu;
-  function deleteKeu(id){ if(currentRole!=='admin') return alert('Hanya admin.'); if(!confirm('Hapus catatan keuangan?')) return; keuangan = keuangan.filter(k => k.id !== id); save(LS.keu, keuangan); renderAll(); }
+
+  async function deleteKeu(id){
+    if(currentRole!=='admin') return alert('Hanya admin.');
+    if(!confirm('Hapus catatan keuangan?')) return;
+    try {
+      await fs.deleteData('keuangan', id);
+      await refreshKeuangan();
+      alert('Dihapus.');
+    } catch(e){ console.error(e); alert('Error hapus keuangan'); }
+  }
   window.deleteKeu = deleteKeu;
 
-  /* ---------------- Initial balances (accounts) ---------------- */
+  async function refreshKeuangan(){ keuangan = await fs.loadCollection('keuangan'); renderKeuanganTable(); updateKeuanganUI(); }
+
+  // --- Initial balances (accounts)
   function loadInitialBalancesToForm(){
-    const acc = load(LS.accounts, { Insiba:0, Ronda:0, Donasi:0, Umum:0 });
-    el('#bInsiba').value = acc.Insiba || 0;
-    el('#bRonda').value = acc.Ronda || 0;
-    el('#bDonasi').value = acc.Donasi || 0;
-    el('#bUmum').value = acc.Umum || acc.Umum || acc.Umum === 0 ? acc.Umum : 0;
+    el('#bInsiba').value = accounts.Insiba || 0;
+    el('#bRonda').value = accounts.Ronda || 0;
+    el('#bDonasi').value = accounts.Donasi || 0;
+    el('#bUmum').value = accounts.Umum || accounts.Umum || accounts.Umum === 0 ? accounts.Umum : 0;
   }
-  function saveInitialBalances(){
+  async function saveInitialBalances(){
     const acc = { Insiba:+el('#bInsiba').value||0, Ronda:+el('#bRonda').value||0, Donasi:+el('#bDonasi').value||0, Umum:+el('#bUmum').value||0 };
-    save(LS.accounts, acc); accounts = acc; alert('Saldo awal disimpan.'); renderAll();
+    try {
+      await fs.setData('settings','accounts', acc);
+      accounts = acc;
+      alert('Saldo awal disimpan.');
+      await refreshKeuangan(); // recompute UI
+    } catch(e){ console.error(e); alert('Error menyimpan saldo awal'); }
   }
   window.saveInitialBalances = saveInitialBalances;
 
-  /* ---------------- Logo upload ---------------- */
+  // --- Logo upload (saved to settings/logo as dataUrl)
   window.handleLogoUpload = function(e){
     const f = e.target.files[0]; if(!f) return alert('Pilih gambar.');
     const r = new FileReader();
-    r.onload = ev => { const data = ev.target.result; if(el('#logoMain')) el('#logoMain').src = data; if(el('#logoLogin')) el('#logoLogin').src = data; save(LS.logo, data); alert('Logo tersimpan (localStorage).'); };
+    r.onload = async ev => {
+      const data = ev.target.result;
+      try {
+        await fs.setData('settings','logo',{ dataUrl: data, updatedAt: new Date().toISOString() });
+        el('#logoMain').src = data; el('#logoLogin').src = data;
+        alert('Logo tersimpan (Firestore).');
+      } catch(err){ console.error(err); alert('Error simpan logo'); }
+    };
     r.readAsDataURL(f);
   }
 
-  /* ---------------- Export / Print helpers ---------------- */
+  // --- Export / Print
   function exportCSV(tableId){
     const table = document.getElementById(tableId);
     if(!table) return;
@@ -656,7 +720,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   window.exportTablePrint = exportTablePrint;
 
-  /* ---------------- Search binding ---------------- */
+  // --- Search binding
   function bindSearch(inpSel, tableSel){
     const inp = document.querySelector(inpSel); if(!inp) return;
     inp.addEventListener('input', ()=> {
@@ -667,7 +731,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ---------------- Tabs binding ---------------- */
+  // --- Tabs binding
   els('#tabs .nav-link').forEach(a=>{
     a.addEventListener('click', ()=>{
       els('#tabs .nav-link').forEach(x=>x.classList.remove('active'));
@@ -680,21 +744,43 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  /* ---------------- Render all ---------------- */
-  function renderAll(){
-    renderWargaTable();
-    updateDemografiUI();
-    renderKeuanganTable();
-    updateKeuanganUI();
+  // --- Render all
+  async function renderAll(){
+    startClock();
+    await loadSettings();
+    await refreshWarga();
+    await refreshKeuangan();
     loadInitialBalancesToForm();
+    updateDemografiUI();
+    updateKeuanganUI();
   }
 
-  // listeners
+  // --- Login/logout
+  window.fillDemo = function(){ el('#username').value='admin'; el('#password').value='admin123'; }
+  window.login = async function(){
+    const u = el('#username').value.trim(), p = el('#password').value.trim();
+    if(u==='admin' && p==='admin123') currentRole='admin';
+    else if(u==='user' && p==='user123') currentRole='user';
+    else { alert('Creds salah! (admin/admin123, user/user123)'); return; }
+    el('#loginPage').classList.add('hidden');
+    el('#app').classList.remove('hidden');
+    if(currentRole!=='admin') els('.adminOnly').forEach(x=>x.classList.add('hidden'));
+    await renderAll();
+  }
+  window.logout = function(){ location.reload(); }
+  window.openReadme = function(){ new bootstrap.Modal(document.getElementById('modalReadme')).show(); }
+
+  // --- helpers to refresh lists quickly (used above)
+  async function refreshWargaAndUI(){ await refreshWarga(); updateDemografiUI(); }
+  async function refreshKeuanganAndUI(){ await refreshKeuangan(); updateKeuanganUI(); }
+
+  // --- initial call setup for filter change
   if(el('#filterKategori')) el('#filterKategori').addEventListener('change', ()=> renderKeuanganTable());
 
-  // expose debug
-  window._debug = { getWarga:()=>warga, getKeuangan:()=>keuangan, getAccounts:()=>load(LS.accounts) };
+  // Expose debug
+  window._debug = { getWarga:()=>warga, getKeuangan:()=>keuangan, getAccounts:()=>accounts };
 
+  // Initial: show login only. (Everything loads after login)
 });
 </script>
 </body>
